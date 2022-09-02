@@ -71,6 +71,7 @@ function App() {
   const selectedQuarters = useRef([]);
   const selectedHouseTypes = useRef([]);
   const descriptionField = useRef<any>();
+  const [chartDescription, setChartDescription] = useState('');
   const [savedStatistics, setSavedStatistics] = useState<any[]>([]);
   const [data, setData] = useState(initialData);
   const { register, handleSubmit } = useForm();
@@ -173,6 +174,7 @@ function App() {
       window.history.pushState("", "", `selection?housetypes=${data.houseTypes}&quarters=${data.quarters}`);
       selectedHouseTypes.current = data.houseTypes;
       selectedQuarters.current = data.quarters;
+      setChartDescription(data.description)
     });
   }
 
@@ -259,6 +261,7 @@ function App() {
 
       <div style={{ width: 500, height: 500}}>
       <Line  data={data}  />
+      <div>Description: {chartDescription ? chartDescription : '-'}</div>
 
       </div>
     </div>
