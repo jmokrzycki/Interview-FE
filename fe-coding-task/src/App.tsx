@@ -27,6 +27,10 @@ ChartJS.register(
   Legend
 );
 
+type houseType = {
+  value: string, name: string
+};
+
 const houseTypesDictionary = [
   {value: "00", name: "Boliger i alt"}, 
   {value: "02", name: "Småhus"}, 
@@ -50,6 +54,12 @@ const quarters = [
   "2022K3",
 ];
 
+ interface Statistic {
+  houseTypes: string[];
+  quarters: string[];
+  description?: string;
+ }
+
 function random_rgba() {
   var o = Math.round, r = Math.random, s = 255;
   return 'rgba(' + o(r()*s) + ',' + o(r()*s) + ',' + o(r()*s) + ',' + r().toFixed(1) + ')';
@@ -68,11 +78,11 @@ function App() {
     ],
   };
 
-  const selectedQuarters = useRef([]);
-  const selectedHouseTypes = useRef([]);
-  const descriptionField = useRef<any>();
+  const selectedQuarters = useRef<string[]>([]);
+  const selectedHouseTypes = useRef<string[]>([]);
+  const descriptionField = useRef<HTMLInputElement>(null);
   const [chartDescription, setChartDescription] = useState('');
-  const [savedStatistics, setSavedStatistics] = useState<any[]>([]);
+  const [savedStatistics, setSavedStatistics] = useState<Statistic[]>([]);
   const [data, setData] = useState(initialData);
   const { register, handleSubmit } = useForm();
 
@@ -81,7 +91,7 @@ function App() {
   }, []);
 
   useEffect(()=>{
-    let statistics: any = ls('savedStatistics');
+    let statistics = ls('savedStatistics') as unknown as Statistic[];
     setSavedStatistics(statistics);
   }, []);
 
@@ -101,19 +111,21 @@ function App() {
     });
   }
 
-  const setChart = (prices: any, houseTypes: any, quarters: any) => {
+  const setChart = (prices: number[], houseTypes: string[] = [], quarters: string[] = []) => {
+    console.log(prices, houseTypes, quarters);
+
     let values = [...prices];
 
-    let newDatasets: { label: any; data: any[]; borderColor: string; backgroundColor: string; }[] = [];
+    let newDatasets: { label: string; data: number[]; borderColor: string; backgroundColor: string; }[] = [];
 
     const quartersCount = quarters.length;
-    houseTypes.forEach((houseType: any, index: any) => {
+    houseTypes.forEach((houseType: string, index: number) => {
         const currentIndexQuarterStart = index * quartersCount;
         const currentIndexQuarterEnd = currentIndexQuarterStart + quartersCount;
 
         const prices = values.slice(currentIndexQuarterStart, currentIndexQuarterEnd);
         newDatasets.push({
-            label: houseTypesDictionary.find((el: any) => el.value === houseType)?.name,
+            label: houseTypesDictionary.find((el: houseType) => el.value === houseType)?.name ?? '',
             data: prices,
             borderColor: random_rgba(),
             backgroundColor: random_rgba(),
@@ -126,7 +138,7 @@ function App() {
     })
   }
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: any) => { //{houseTypes: string[]; quarters: string[]}
     console.log(data);
     getAveragePrices(data.houseTypes, data.quarters).then(response => {
       setChart(response.data.value, data.houseTypes, data.quarters);
@@ -138,6 +150,7 @@ function App() {
   
 
   const handleChangeMultiple = (event: any) => {
+    console.log(event.target.options);
     const { options } = event.target;
     const value = [];
     for (let i = 0, l = options.length; i < l; i += 1) {
@@ -150,17 +163,14 @@ function App() {
   };
 
   const saveStatistics = () => {
-    let savedStatisticsFromLocalStorage: any = ls('savedStatistics') === null ? [] : ls('savedStatistics');
+    let savedStatisticsFromLocalStorage = (ls('savedStatistics') === null ? [] : ls('savedStatistics')) as Statistic[];
 
-    
-    console.log(descriptionField.current.value);
-
-    const newStatistics = [
+    const newStatistics: Statistic[] = [
       ...savedStatisticsFromLocalStorage,
       {
         houseTypes: selectedHouseTypes.current,
         quarters: selectedQuarters.current,
-        description: descriptionField.current.value,
+        description: descriptionField?.current?.value ?? '',
       }
     ];
 
@@ -251,12 +261,12 @@ function App() {
       }} >
         {savedStatistics && savedStatistics.map((data, index)=>{
             return (<ListItem onClick={() => selectStatistic(data)}>
-              <ListItemText key={`${data.houseType}${index}`}
+              <ListItemText key={`${data.houseTypes}${index}`}
                 primary={`House types: ${data.houseTypes} Quarters ${data.quarters}`}
               />
             </ListItem>)
           
-        })}
+        })}--
       </List>
 
       <div style={{ width: 500, height: 500}}>
