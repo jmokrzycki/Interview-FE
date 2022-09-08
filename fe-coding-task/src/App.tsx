@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
-import { Button, List, ListItem, ListItemText, TextField } from '@mui/material';
+import { Button, List, ListItem, ListItemText, TextField, SelectChangeEvent, Grid, Box } from '@mui/material';
 import { getAveragePrices } from './Requests';
 import { useForm } from 'react-hook-form';
 import Select from '@mui/material/Select';
@@ -138,7 +138,7 @@ function App() {
     })
   }
 
-  const onSubmit = (data: any) => { //{houseTypes: string[]; quarters: string[]}
+  const onSubmit = (data: any) => {
     console.log(data);
     getAveragePrices(data.houseTypes, data.quarters).then(response => {
       setChart(response.data.value, data.houseTypes, data.quarters);
@@ -149,9 +149,8 @@ function App() {
   }
   
 
-  const handleChangeMultiple = (event: any) => {
-    console.log(event.target.options);
-    const { options } = event.target;
+  const handleChangeMultiple = (event:  any) => {
+    const options = event.target.options;
     const value = [];
     for (let i = 0, l = options.length; i < l; i += 1) {
       if (options[i].selected) {
@@ -178,102 +177,120 @@ function App() {
     ls('savedStatistics', newStatistics);
   }
 
-  const selectStatistic = (data: any) => {
+  const selectStatistic = (data: Statistic) => {
     getAveragePrices(data.houseTypes, data.quarters).then(response => {
       setChart(response.data.value, data.houseTypes, data.quarters);
       window.history.pushState("", "", `selection?housetypes=${data.houseTypes}&quarters=${data.quarters}`);
       selectedHouseTypes.current = data.houseTypes;
       selectedQuarters.current = data.quarters;
-      setChartDescription(data.description)
+      setChartDescription(data.description ?? '')
     });
   }
 
   return (
     <div className="App">
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={4} style={{ maxWidth: 350 }}>
+          <Box m={2}>
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="select-options">
+              <Grid container spacing={2} justifyContent="space-around">
+                <Grid item xs={6}>
+                  <Select
+                    {...register("houseTypes", {required: true})}
+                    multiple
+                    native
+                    defaultValue={ls('houseTypes')}
+                    onChange={handleChangeMultiple}
+                    label="Native"
+                    inputProps={{
+                      id: 'select-multiple-native',
+                    }}
+                  >
+                    {houseTypesDictionary.map((type) => (
+                      <option key={type.name} value={type.value}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Grid>
+                <Grid item xs={6}>
+                  <Select
+                      {...register("quarters", {required: true})}
+                      multiple
+                      native
+                      defaultValue={ls('quarters')}
+                      onChange={handleChangeMultiple}
+                      label="Native"
+                      inputProps={{
+                        id: 'select-multiple-native',
+                      }}
+                    >
+                      {quarters.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Grid>
+                </Grid>
+              </div>
+              <Button
+              type="submit"
+              variant="contained">
+                Show chart
+              </Button>
+            </form>
+          </Box>
 
-      <Select
-          {...register("houseTypes", {required: true})}
-          multiple
-          native
-          defaultValue={ls('houseTypes')}
-          onChange={handleChangeMultiple}
-          label="Native"
-          inputProps={{
-            id: 'select-multiple-native',
-          }}
-        >
-          {houseTypesDictionary.map((type) => (
-            <option key={type.name} value={type.value}>
-              {type.name}
-            </option>
-          ))}
-      </Select>
+          <Box m={2}>
+            <Button 
+              variant="contained"
+              onClick={saveStatistics}
+              disabled={!selectedHouseTypes.current.length && !selectedQuarters.current.length}>
+                Save statistic
+            </Button>
+            <br/>
+            Description: <input ref={descriptionField}></input>
+          </Box>
 
-      <Select
-          {...register("quarters", {required: true})}
-          multiple
-          native
-          defaultValue={ls('quarters')}
-          onChange={handleChangeMultiple}
-          label="Native"
-          inputProps={{
-            id: 'select-multiple-native',
-          }}
-        >
-          {quarters.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </Select>
+          {/* <TextField
+              id="outlined-multiline-flexible"
+              label="Description"
+              multiline
+              maxRows={4}
+      
+              // value={value}
+              // onChange={handleChange}
+            /> */}
 
-        <Button
-         type="submit"
-         variant="contained">
-           Show chart
-        </Button>
-      </form>
+          <Box m={2}>
+            <List sx={{
+              maxWidth: 360,
+              overflow: 'auto',
+              maxHeight: 300,
+            }}>
+              {savedStatistics && savedStatistics.map((data, index)=>{
+                  return (<ListItem onClick={() => selectStatistic(data)}>
+                    <ListItemText key={`${data.houseTypes}${index}`}
+                      primary={`House types: ${data.houseTypes} Quarters ${data.quarters}`}
+                    />
+                  </ListItem>)
+                
+              })}
+            </List>
+          </Box>
+        </Grid>
 
-      <Button 
-        variant="contained"
-        onClick={saveStatistics}
-        disabled={!selectedHouseTypes.current.length && !selectedQuarters.current.length}>
-          Save statistic
-      </Button>
+        <Grid item xs={12} sm={8}>
 
-      Description: <input ref={descriptionField}></input>
+          <div style={{ width: 'auto', height: 'auto'}}>
+            <Line  data={data}  />
+            <div>Description: {chartDescription ? chartDescription : '-'}</div>
+          </div>      
 
-      {/* <TextField
-          id="outlined-multiline-flexible"
-          label="Description"
-          multiline
-          maxRows={4}
-  
-          // value={value}
-          // onChange={handleChange}
-        /> */}
-
-      <List sx={{
-        maxWidth: 360,
-        overflow: 'auto',
-        maxHeight: 300,
-      }} >
-        {savedStatistics && savedStatistics.map((data, index)=>{
-            return (<ListItem onClick={() => selectStatistic(data)}>
-              <ListItemText key={`${data.houseTypes}${index}`}
-                primary={`House types: ${data.houseTypes} Quarters ${data.quarters}`}
-              />
-            </ListItem>)
-          
-        })}--
-      </List>
-
-      <div style={{ width: 500, height: 500}}>
-      <Line  data={data}  />
-      <div>Description: {chartDescription ? chartDescription : '-'}</div>
-
-      </div>
+        </Grid>
+      </Grid>
     </div>
   );
 }
